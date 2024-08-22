@@ -1,14 +1,26 @@
-import java.net.MulticastSocket;
-
 public class ChatApp {
     public static void main(String[] args) throws Exception {
-        IOUtil io = new IOUtil();
-        io.writeLine("Olá, digite seu nome de usuário:");
-        String userName =  io.readString();
-        io.writeLine("Olá " + userName + ", digite a sala que deseja entrar:");
-        String room = io.readString();
+        String userName =  args[0];
+        String room = args[1];
 
-        Multicast sala = new Multicast(room);
+        Multicast multicastRoom = new Multicast(room);
+        boolean entrou = multicastRoom.enterRoom(userName);
+
+        if (entrou) {
+            multicastRoom.receiveMessages();
+    
+            boolean dentro = true; 
+            while (dentro) {
+                String message = IOUtil.readString();
+                if("/sair".equals(message)) {
+                    dentro = false;
+                } else {
+                    multicastRoom.sendMessage(userName + ": " + message);            
+                }
+            }
+
+            multicastRoom.leaveRoom();
+        }
 
     }
 }
