@@ -11,6 +11,7 @@ public class Multicast {
     private final String room;
     private String userName;
     private final int port = 6789;
+    private Thread receiveThread;
     private boolean running = true;
 
     public Multicast(String room) throws IOException {
@@ -20,10 +21,18 @@ public class Multicast {
     public boolean enterRoom(String userName) throws IOException {
         try {
             this.userName = userName;
-            groupIp = InetAddress.getByName("225.0.0." + room);
+            groupIp = InetAddress.getByName(room);
             group = new InetSocketAddress(groupIp, port);            
             socket = new MulticastSocket(6789);
             socket.joinGroup(group, null);
+
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try {
+                    leaveRoom();
+                } catch (IOException e) {
+                }
+            }));
+            
             sendMessage(userName + " entrou na sala");
             return true;
         } catch (IOException ex) {
@@ -36,8 +45,12 @@ public class Multicast {
             sendMessage(userName + " saiu da sala");
             running = false;
             socket.leaveGroup(group, null);
-            if (socket != null)
+            
+            if (socket != null) {
                 socket.close();
+            }
+
+            receiveThread.interrupt();
             return true;
         } catch (IOException ex) {
             throw ex;
@@ -55,7 +68,7 @@ public class Multicast {
     }
 
     void receiveMessages() {
-        new Thread() {
+        receiveThread = new Thread() {
             @Override
             public void run () {
                 try {
@@ -71,6 +84,7 @@ public class Multicast {
                 } catch (IOException ex) {
                 }
             }
-        }.start();        
+        };
+        receiveThread.start();
     }
 }
